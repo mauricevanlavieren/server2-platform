@@ -1,0 +1,68 @@
+---
+- name: Install and verify k3s
+  hosts: server2
+  become: true
+  gather_facts: true
+
+  vars:
+    k3s_version: "v1.36.4+k3s1"
+
+  tasks:
+    - name: Check whether k3s binary exists
+      ansible.builtin.stat:
+        path: /usr/local/bin/k3s
+      register: k3s_binary
+
+    - name: Read currently installed k3s version
+      ansible.builtin.command:
+        cmd: /usr/local/bin/k3s --version
+      register: current_k3s_version
+      changed_when: false
+      failed_when: false
+      when: k3s_binary.stat.exists
+
+    - name: Determine whether k3s installation is required
+      ansible.builtin.set_fact:
+        k3s_install_required: >-
+          {{
+            not k3s_binary.stat.exists
+            or
+            k3s_version not in (current_k3s_version.stdout | default(''))
+          }}
+
+    - name: Download official k3s installer
+      ansible.builtin.get_url:
+        url: https://get.k3s.io
+        dest: /tmp/install-k3s.sh
+        mode: "0755"
+      when: k3s_install_required
+
+    - name: Install pinned k3s version
+      ansible.builtin.command:
+        cmd: /tmp/install-k3s.sh
+      environment:
+        INSTALL_K3S_VERSION: "{{ k3s_version }}"
+      when: k3s_install_required
+
+    - name: Verify k3s service is active
+      ansible.builtin.command:
+        cmd: systemctl is-active k3s
+      register: k3s_service
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Read installed k3s version
+      ansible.builtin.command:
+        cmd: /usr/local/bin/k3s --version
+      register: installed_k3s_version
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Assert k3s installation
+      ansible.builtin.assert:
+        that:
+          - k3s_service.stdout == "active"
+          - k3s_version in installed_k3s_version.stdout
+        fail_msg: "k3s installation does not match the expected configuration."
+        success_msg: "k3s is installed, active, and running the pinned version."
+      when: not ansible_check_mode
