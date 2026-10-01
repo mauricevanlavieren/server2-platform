@@ -30,7 +30,6 @@ spec:
       - Ingress
 
     service:
-      type: LoadBalancer
+      type: ClusterIP
       port: 53
-      loadBalancerIP: 192.168.0.162
       useTcp: true
