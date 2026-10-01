@@ -12,3 +12,124 @@
           - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
           - "Kernel: {{ ansible_kernel }}"
           - "Architecture: {{ ansible_architecture }}"
+
+    - name: Verify server identity
+      ansible.builtin.assert:
+        that:
+          - ansible_hostname == "mau2"
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_version is version("24.04", ">=")
+          - ansible_architecture == "x86_64"
+        fail_msg: "Server identity does not match the expected server2 baseline."
+        success_msg: "Server identity matches the expected server2 baseline."
+
+    - name: Read time configuration
+      ansible.builtin.command:
+        cmd: timedatectl show -p Timezone -p NTPSynchronized
+      register: time_config
+      changed_when: false
+
+    - name: Verify time configuration
+      ansible.builtin.assert:
+        that:
+          - "'Timezone=Europe/Amsterdam' in time_config.stdout"
+          - "'NTPSynchronized=yes' in time_config.stdout"
+        fail_msg: "Timezone or NTP synchronization does not match the server2 baseline."
+        success_msg: "Timezone and NTP synchronization match the server2 baseline."
+
+    - name: Read effective SSH configuration
+      ansible.builtin.shell:
+        cmd: >
+          sshd -T |
+          grep -E '^(passwordauthentication|pubkeyauthentication|permitrootlogin) '
+      register: ssh_config
+      changed_when: false
+
+    - name: Verify SSH security configuration
+      ansible.builtin.assert:
+        that:
+          - "'permitrootlogin no' in ssh_config.stdout"
+          - "'pubkeyauthentication yes' in ssh_config.stdout"
+          - "'passwordauthentication no' in ssh_config.stdout"
+        fail_msg: "SSH security configuration does not match the server2 baseline."
+        success_msg: "SSH security configuration matches the server2 baseline."
+
+    - name: Read UFW firewall configuration
+      ansible.builtin.command:
+        cmd: ufw status verbose
+      register: ufw_status
+      changed_when: false
+
+    - name: Verify UFW firewall configuration
+      ansible.builtin.assert:
+        that:
+          - "'Status: active' in ufw_status.stdout"
+          - "'Logging: on (low)' in ufw_status.stdout"
+          - "'Default: deny (incoming), allow (outgoing), disabled (routed)' in ufw_status.stdout"
+          - "'22/tcp (OpenSSH)' in ufw_status.stdout"
+          - "'ALLOW IN' in ufw_status.stdout"
+        fail_msg: "UFW firewall configuration does not match the server2 baseline."
+        success_msg: "UFW firewall configuration matches the server2 baseline."
+
+    - name: Read AppArmor status
+      ansible.builtin.command:
+        cmd: aa-status
+      register: apparmor_status
+      changed_when: false
+
+    - name: Verify AppArmor configuration
+      ansible.builtin.assert:
+        that:
+          - "'apparmor module is loaded.' in apparmor_status.stdout"
+          - "'profiles are in enforce mode.' in apparmor_status.stdout"
+          - "'processes are in enforce mode.' in apparmor_status.stdout"
+        fail_msg: "AppArmor does not match the expected server2 baseline."
+        success_msg: "AppArmor matches the expected server2 baseline."
+
+    - name: Read cgroup filesystem type
+      ansible.builtin.command:
+        cmd: stat -fc %T /sys/fs/cgroup
+      register: cgroup_type
+      changed_when: false
+
+    - name: Verify cgroup v2
+      ansible.builtin.assert:
+        that:
+          - "cgroup_type.stdout == 'cgroup2fs'"
+        fail_msg: "cgroup v2 is not active."
+        success_msg: "cgroup v2 is active."
+
+    - name: Read unattended-upgrades enabled state
+      ansible.builtin.command:
+        cmd: systemctl is-enabled unattended-upgrades
+      register: unattended_enabled
+      changed_when: false
+
+    - name: Read unattended-upgrades active state
+      ansible.builtin.command:
+        cmd: systemctl is-active unattended-upgrades
+      register: unattended_active
+      changed_when: false
+
+    - name: Read automatic APT configuration
+      ansible.builtin.command:
+        cmd: cat /etc/apt/apt.conf.d/20auto-upgrades
+      register: apt_auto_config
+      changed_when: false
+
+    - name: Read APT timer configuration
+      ansible.builtin.command:
+        cmd: systemctl is-enabled apt-daily.timer apt-daily-upgrade.timer
+      register: apt_timers
+      changed_when: false
+
+    - name: Verify automatic security updates
+      ansible.builtin.assert:
+        that:
+          - "unattended_enabled.stdout == 'enabled'"
+          - "unattended_active.stdout == 'active'"
+          - "'APT::Periodic::Update-Package-Lists \"1\";' in apt_auto_config.stdout"
+          - "'APT::Periodic::Unattended-Upgrade \"1\";' in apt_auto_config.stdout"
+          - "apt_timers.stdout_lines | select('equalto', 'enabled') | list | length == 2"
+        fail_msg: "Automatic update configuration does not match the server2 baseline."
+        success_msg: "Automatic update configuration matches the server2 baseline."
