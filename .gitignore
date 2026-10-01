@@ -1,0 +1,19 @@
+# Kubernetes credentials and kubeconfigs
+*.kubeconfig
+kubeconfig
+k3s.yaml
+
+# Secrets and environment files
+.env
+.env.*
+*.secret
+*.secrets
+
+# Ansible temporary/retry files
+*.retry
+
+# Editor / OS files
+*.swp
+*.swo
+*~
+.DS_Store
