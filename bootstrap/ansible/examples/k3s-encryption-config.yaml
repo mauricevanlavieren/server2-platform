@@ -1,0 +1,6 @@
+---
+# DESIGN FRAGMENT ONLY. No playbook references this file.
+# Never overwrite existing config or activate before recovery/testing approval.
+# Intended future /etc/rancher/k3s/config.yaml.d/20-secrets-encryption.yaml.
+secrets-encryption: true
+secrets-encryption-provider: aescbc
