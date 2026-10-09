@@ -7,3 +7,4 @@ resources:
   - infrastructure.yaml
   - apps.yaml
   - forgejo-secrets.yaml
+  - forgejo.yaml

@@ -5,8 +5,8 @@ metadata:
   name: forgejo
   namespace: forgejo
 spec:
-  # Second guard: owner approval + dependency checks before changing to one.
-  replicas: 0
+  # Activated with owner approval; secrets reconciled before app startup.
+  replicas: 1
   revisionHistoryLimit: 2
   strategy:
     type: Recreate
