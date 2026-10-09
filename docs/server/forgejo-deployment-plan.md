@@ -1,5 +1,7 @@
 # Server2 — Forgejo via Flux: ontwerp en deploymentplan
 
+Actuele status: Forgejo is later met eigenaarakkoord geactiveerd. Dit document bewaart het oorspronkelijke ontwerp; zie `forgejo-activation-verification.md` voor uitgevoerde controles en resterende beperkingen.
+
 Datum: 9 oktober 2026. Scope alleen server2. **READY** lokale voorbereiding; **DISABLED** niet gerefereerde manifests, replicas=0 en gesuspendeerd Fluxvoorbeeld; **BLOCKED** TLS, secretbootstrap, runtimeproef en installatiegoedkeuring; **UNTESTED** werkelijke deployment/restore. Geen critical data. Dit oorspronkelijke ontwerp is later aangevuld met lokale TLS/SOPS-voorbereiding; zie de actuele status hieronder. Geen live installatie uitgevoerd.
 
 ## 1. Actuele platformbasis

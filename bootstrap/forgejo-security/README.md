@@ -1,6 +1,6 @@
 # Forgejo TLS/SOPS bootstrap — preparation only
 
-9 oktober 2026. Lokaal gereed: age v1.3.2, SOPS v3.13.3, ageidentity, encrypted CA-private key, publieke CA en Forgejo-leafcertificaat. Officiële assetdigests en SOPS-checksumlijst gecontroleerd; signatures/proofs niet geverifieerd. Certificaatketen, hostname, serverAuth en key/cert-match gecontroleerd. Runtime- en TLS-Secrets staan als SOPS-ciphertext in de repository; decrypt-roundtrip in memory geslaagd zonder plaintextoutput. De eigenaar heeft de publieke CA in de systeemtrust van de laptop geïnstalleerd; OpenSSL-validatie geslaagd. Browsertrust niet vastgesteld. Geen commit/push, clusterbootstrap of applicatieactivering uitgevoerd in deze fase. Volledige TLS/deployment/herstelketen niet getest.
+9 oktober 2026. Lokaal gereed: age v1.3.2, SOPS v3.13.3, ageidentity, encrypted CA-private key, publieke CA en Forgejo-leafcertificaat. Officiële assetdigests en SOPS-checksumlijst gecontroleerd; signatures/proofs niet geverifieerd. Certificaatketen, hostname, serverAuth en key/cert-match gecontroleerd. Runtime- en TLS-Secrets staan als SOPS-ciphertext in de repository; decrypt-roundtrip in memory geslaagd zonder plaintextoutput. De eigenaar heeft de publieke CA in de systeemtrust van de laptop geïnstalleerd; OpenSSL-validatie geslaagd. Browsertrust niet vastgesteld. De lokale voorbereiding is daarna gepubliceerd en op server2 geactiveerd met afzonderlijk eigenaarakkoord. Zie docs/server/forgejo-activation-verification.md voor de actuele status. Volledige TLS/deployment/herstelketen niet getest.
 
 ## Eigenaarbesluiten
 
@@ -34,3 +34,7 @@ RootCA 10jaar versus leaf90dagen vereist tijdige renewal. Zonder nieuwe service 
 Eerst lokale tooling en key/certcreatie, vervolgens aparte trustinstallatie en clusterbootstrap, dan eigen commit/push en Forgejoactivatie. Een akkoord voor lokale generatie autoriseert geen live Kuberneteswijzigingen, appstart of Gitpush. Deze voorbeelden voegen niets toe aan actieve Kustomizepaden.
 
 Primaire bronnen: [SOPS v3.13.3](https://github.com/getsops/sops/releases/tag/v3.13.3), [age v1.3.2](https://github.com/FiloSottile/age/releases/tag/v1.3.2), [Flux SOPS/age bootstrap](https://fluxcd.io/flux/guides/mozilla-sops/).
+
+## Eerste beheerder
+
+Voer `bash /home/mau/server2-platform/bootstrap/forgejo-security/create-admin.sh` alleen in je eigen terminal uit. Het script vraagt username/email en laat Forgejo een tijdelijk wachtwoord genereren, zonder wachtwoord in CLI-argumenten. Bewaar dit in je wachtwoordmanager, deel de uitvoer niet in chat en wijzig het bij eerste login. Geen beheerder aangemaakt door de agent; login/clone/push nog niet getest.
