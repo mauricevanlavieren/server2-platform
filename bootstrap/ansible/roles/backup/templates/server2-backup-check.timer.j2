@@ -1,0 +1,7 @@
+[Unit]
+Description=Server2 backup check timer — must remain disabled
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+Unit=server2-backup-check.service

@@ -1,0 +1,19 @@
+# EXAMPLE ONLY. Not installed, no credentials/TLS material created.
+# Requires reviewed binary version/checksum, account, storage and access controls.
+[Unit]
+Description=Future append-only Restic target — example only
+After=network-online.target
+
+[Service]
+Type=simple
+User=restic
+Group=restic
+UMask=0077
+ExecStart=/usr/local/bin/rest-server --listen :8000 --path /srv/restic --append-only --private-repos --tls --tls-cert /etc/rest-server/server.crt --tls-key /etc/rest-server/server.key --htpasswd-file /etc/rest-server/htpasswd --max-size 107374182400
+ProtectSystem=strict
+ReadWritePaths=/srv/restic
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+
+# Deliberately no [Install] section; never auto-enable this example.

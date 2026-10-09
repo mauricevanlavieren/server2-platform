@@ -1,0 +1,24 @@
+[Unit]
+Description=Server2 external repository metadata check (disabled preparation)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/usr/local/sbin/server2-backup check
+TimeoutStartSec=30min
+LoadCredential=repository-password:/etc/server2-backup/credentials/repository-password
+LoadCredential=rest-user:/etc/server2-backup/credentials/rest-user
+LoadCredential=rest-password:/etc/server2-backup/credentials/rest-password
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/server2-backup
+PrivateTmp=true
+NoNewPrivileges=true
+LimitCORE=0
+MemorySwapMax=0
+MemoryMax=512M
+Nice=10
+IOSchedulingClass=idle

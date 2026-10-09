@@ -1,0 +1,8 @@
+[Unit]
+Description=Server2 backup timer — must remain disabled
+
+[Timer]
+OnCalendar={{ backup_interval }}
+Persistent=true
+RandomizedDelaySec=5min
+Unit=server2-backup.service

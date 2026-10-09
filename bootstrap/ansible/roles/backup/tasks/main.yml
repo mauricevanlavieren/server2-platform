@@ -1,0 +1,69 @@
+---
+- name: Enforce preparation-only role
+  ansible.builtin.assert:
+    that:
+      - not (backup_enabled | bool)
+      - backup_restic_package_version | length > 0
+    fail_msg: This role cannot activate backups; select an audited Restic package version before authorized deployment.
+
+- name: Install selected dependencies only during separately approved deployment
+  ansible.builtin.apt:
+    name:
+      - "restic={{ backup_restic_package_version }}"
+      - python3
+      - util-linux
+    state: present
+    update_cache: false
+
+- name: Create non-credential directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop:
+    - /etc/server2-backup
+    - /var/lib/server2-backup
+
+- name: Deploy backup runner
+  ansible.builtin.copy:
+    src: backup.py
+    dest: /usr/local/sbin/server2-backup
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Deploy disabled configuration
+  ansible.builtin.template:
+    src: config.json.j2
+    dest: /etc/server2-backup/config.json
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Deploy inactive unit files
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - server2-backup.service
+    - server2-backup.timer
+    - server2-backup-check.service
+    - server2-backup-check.timer
+    - server2-backup-status.service
+    - server2-backup-status.timer
+
+- name: Reload unit definitions and keep all timers disabled and stopped
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    daemon_reload: true
+    enabled: false
+    state: stopped
+  loop:
+    - server2-backup.timer
+    - server2-backup-check.timer
+    - server2-backup-status.timer

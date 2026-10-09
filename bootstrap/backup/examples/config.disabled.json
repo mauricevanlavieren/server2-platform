@@ -1,0 +1,9 @@
+{
+  "enabled": false,
+  "repository": "",
+  "destination_host": "",
+  "repository_id": "",
+  "ca_cert": "/etc/server2-backup/ca.pem",
+  "max_age_seconds": 28800,
+  "application_contracts": []
+}

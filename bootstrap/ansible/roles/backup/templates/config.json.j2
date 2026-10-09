@@ -1,0 +1,9 @@
+{
+  "enabled": {{ backup_enabled | bool | to_json }},
+  "repository": {{ backup_repository | to_json }},
+  "destination_host": {{ backup_destination_host | to_json }},
+  "repository_id": {{ backup_repository_id | to_json }},
+  "ca_cert": {{ backup_ca_cert | to_json }},
+  "max_age_seconds": {{ backup_max_age_seconds | int }},
+  "application_contracts": []
+}

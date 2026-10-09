@@ -1,0 +1,6 @@
+[Unit]
+Description=Server2 backup freshness timer — must remain disabled
+
+[Timer]
+OnCalendar=hourly
+Unit=server2-backup-status.service

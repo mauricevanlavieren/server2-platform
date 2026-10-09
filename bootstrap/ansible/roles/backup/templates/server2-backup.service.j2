@@ -1,0 +1,28 @@
+[Unit]
+Description=Server2 external backup (disabled preparation)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/usr/local/sbin/server2-backup backup
+TimeoutStartSec=30min
+LoadCredential=repository-password:/etc/server2-backup/credentials/repository-password
+LoadCredential=rest-user:/etc/server2-backup/credentials/rest-user
+LoadCredential=rest-password:/etc/server2-backup/credentials/rest-password
+TemporaryFileSystem=/run/server2-backup:rw,noswap,size=256M,mode=0700
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/server2-backup
+PrivateTmp=true
+NoNewPrivileges=true
+LimitCORE=0
+MemorySwapMax=0
+MemoryMax=512M
+CPUQuota=100%
+Nice=10
+IOSchedulingClass=idle
+StandardOutput=journal
+StandardError=journal

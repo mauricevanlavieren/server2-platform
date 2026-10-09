@@ -1,0 +1,11 @@
+[Unit]
+Description=Server2 backup status age (no notifications configured)
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/local/sbin/server2-backup status
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true

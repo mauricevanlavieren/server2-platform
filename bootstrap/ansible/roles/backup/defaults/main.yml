@@ -1,0 +1,9 @@
+---
+backup_enabled: false
+backup_repository: ""
+backup_destination_host: ""
+backup_repository_id: ""
+backup_ca_cert: /etc/server2-backup/ca.pem
+backup_interval: "*-*-* 00,04,08,12,16,20:00:00"
+backup_max_age_seconds: 28800
+backup_restic_package_version: ""

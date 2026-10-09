@@ -1,0 +1,16 @@
+---
+# Specification only: runner rejects non-empty application_contracts.
+status: UNTESTED
+application: TO_BE_SELECTED
+namespace: TO_BE_SELECTED
+version: TO_BE_SELECTED
+pvc_mapping_required: true
+consistency:
+  method: native-export-and-coordinated-write-pause
+  exporter: NOT_IMPLEMENTED
+  resume_on_failure: REQUIRED
+restore:
+  isolated_test: REQUIRED
+  database_integrity: REQUIRED
+  files_and_database_same_generation: REQUIRED
+# No live hooks, exec commands, raw PVC fallback or credentials.

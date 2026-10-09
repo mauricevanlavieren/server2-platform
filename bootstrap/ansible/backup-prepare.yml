@@ -1,0 +1,18 @@
+---
+- name: Prepare disabled server2 backup components
+  hosts: server2
+  become: true
+  gather_facts: true
+  pre_tasks:
+    - name: Restrict target and require separate deployment authorization
+      ansible.builtin.assert:
+        that:
+          - inventory_hostname == 'server2'
+          - ansible_hostname == 'mau2'
+          - ansible_host == '192.168.0.162'
+          - ansible_distribution == 'Ubuntu'
+          - ansible_distribution_version is version('24.04', '==')
+          - backup_deployment_approved | default(false) | bool
+        fail_msg: Deployment is not authorized or target is not server2.
+  roles:
+    - backup
