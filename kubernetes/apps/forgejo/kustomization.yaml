@@ -3,7 +3,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 # STAGING ONLY: not referenced by kubernetes/apps/kustomization.yaml.
 resources:
-  - namespace.yaml
   - pvc.yaml
   - configmap.yaml
   - deployment.yaml

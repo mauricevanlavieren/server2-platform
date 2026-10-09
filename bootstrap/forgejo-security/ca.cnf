@@ -1,0 +1,12 @@
+# Public configuration only; no key or certificate generated.
+[req]
+prompt = no
+distinguished_name = subject
+x509_extensions = ca_extensions
+[subject]
+CN = Server2 Homelab Root CA
+[ca_extensions]
+basicConstraints = critical, CA:true, pathlen:0
+keyUsage = critical, keyCertSign, cRLSign
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always

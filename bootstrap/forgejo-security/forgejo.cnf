@@ -1,0 +1,18 @@
+# Public configuration only; no key or certificate generated.
+[req]
+prompt = no
+distinguished_name = subject
+req_extensions = request_extensions
+[subject]
+CN = forgejo.home.arpa
+[request_extensions]
+subjectAltName = @names
+[leaf_extensions]
+basicConstraints = critical, CA:false
+keyUsage = critical, digitalSignature
+extendedKeyUsage = serverAuth
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer
+subjectAltName = @names
+[names]
+DNS.1 = forgejo.home.arpa

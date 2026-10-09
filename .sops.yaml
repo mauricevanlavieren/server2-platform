@@ -1,0 +1,4 @@
+creation_rules:
+- path_regex: ^kubernetes/secrets/forgejo/.*\.sops\.yaml$
+  encrypted_regex: ^(data|stringData)$
+  age: age1rlnjsjr23hwvnev6ld98hsv55s3dlr60psvcrs3k08puxgyaysfq9kkh0d

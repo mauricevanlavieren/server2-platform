@@ -1,0 +1,6 @@
+# Example only. Replace recipient after separately approved age-key generation.
+# Never use this placeholder as an operational .sops.yaml.
+creation_rules:
+  - path_regex: ^kubernetes/secrets/forgejo/.*\.sops\.yaml$
+    encrypted_regex: ^(data|stringData)$
+    age: AGE_PUBLIC_RECIPIENT_TO_SET
