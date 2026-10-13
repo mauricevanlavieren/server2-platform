@@ -73,10 +73,13 @@ def background():
  while not STOP.is_set():
   try:
    collect()
+  except Exception as e:
+   with db() as c:c.execute('INSERT INTO audit VALUES(?,?,?)',(time.time(),'discovery_error',type(e).__name__))
+  try:
    import features
    if hasattr(features,'app'):features.sample()
   except Exception as e:
-   with db() as c:c.execute('INSERT INTO audit VALUES(?,?,?)',(time.time(),'discovery_error',type(e).__name__))
+   with db() as c:c.execute('INSERT INTO audit VALUES(?,?,?)',(time.time(),'monitoring_error',type(e).__name__))
   STOP.wait(60)
 def state(dataset='live'):
  if dataset not in ('live','demo','toolkit'):raise ValueError('Invalid dataset')

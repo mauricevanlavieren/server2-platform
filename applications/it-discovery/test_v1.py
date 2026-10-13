@@ -1,4 +1,5 @@
-import unittest,tempfile,os,sys,json,threading,http.client
+import unittest,tempfile,os,sys,json,threading,http.client,time
+from unittest.mock import patch
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).parent));TMP=tempfile.TemporaryDirectory();os.environ['DISCOVERY_DB']=str(Path(TMP.name)/'v1.sqlite')
 import app,features
@@ -24,6 +25,10 @@ class V1Tests(unittest.TestCase):
   self.assertFalse(next(a for a in features.monitor()['alerts'] if a['id']=='simulation')['active']);features.evaluate({'simulation':(True,'Synthetic disk alert')},102);self.assertTrue(next(a for a in features.monitor()['alerts'] if a['id']=='simulation')['active'])
   for i in range(2):features.evaluate({'simulation':(False,'Recovered')},103+i)
   self.assertFalse(next(a for a in features.monitor()['alerts'] if a['id']=='simulation')['active'])
+ def test_stale_node_cannot_pass(self):
+  stale={'assets':[{'kind':'node','observed':time.time()-200,'facts':{'ready':True}}],'history':[]}
+  with patch.object(app,'state',return_value=stale):features.sample()
+  self.assertGreater(next(a for a in features.monitor()['alerts'] if a['id']=='node')['bad'],0)
  def test_reports_separate_evidence(self):
   for kind in features.KINDS:
    r=features.report('demo',kind);self.assertIn('Vastgestelde feiten',r);self.assertIn('Afgeleide conclusies',r);self.assertIn('Aannames',r);self.assertIn('Nog te verifiëren',r)

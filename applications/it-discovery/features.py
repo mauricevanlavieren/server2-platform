@@ -48,7 +48,7 @@ def sample():
  for name,result in h.get('availability',{}).items():signals['availability:'+name]=(result.get('status')!='PASS','HTTP/DNS beschikbaarheidscontrole mislukt: '+name)
  for fs in h.get('filesystems',[]):signals['disk:'+fs['path']]=(fs['percent']>=85,'Disk ≥85% gebruikt: '+fs['path'])
  b=h.get('backup',{});signals['backup']=(b.get('status')!='PASS' or now-b.get('time',0)>36*3600,'Backup mislukt, onbekend of ouder dan 36 uur')
- signals['node']=(not any(a['kind']=='node' and a['facts'].get('ready') for a in s['assets']),'Node niet Ready of discovery ontbreekt')
+ signals['node']=(not any(a['kind']=='node' and a['facts'].get('ready') and now-a['observed']<180 for a in s['assets']),'Node niet Ready of discovery ontbreekt')
  for a in s['assets']:
   if a['kind']=='deployment':signals['app:'+a['name']]=(a['facts'].get('ready',0)<a['facts'].get('replicas',1),'Applicatie niet Ready: '+a['name']+' (Kubernetes-status, geen end-to-end bereikbaarheidstest)')
  history=s['history'];last=history[-1] if history else {};signals['cpu']=(last.get('cpu',0)>3400,'CPU langdurig boven 85% van vier cores')
