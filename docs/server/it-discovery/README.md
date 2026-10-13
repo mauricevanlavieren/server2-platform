@@ -1,5 +1,7 @@
 # Kompas — IT Discovery & Advisory
 
+**Actuele v1-status:** zie [V1.md](V1.md). Hostcollector, backupdashboard, persistente workflow, zeven rapporttypen en Linux-toolkit zijn inmiddels operationeel. Oudere PARTIAL/BLOCKED-notities hieronder beschrijven eerdere mijlpalen; V1.md geeft de actuele beperkingen. Interne TLS/login/Dashy, SMART zonder smartctl en telefoontransport blijven open.
+
 Status: **PARTIAL, local MVP working; isolated server deployment activated after actual owner-run backup/restore PASS**. Runtime acceptance remains separate from prepared manifests.
 
 Local start: `python3 -B applications/it-discovery/app.py`; open http://127.0.0.1:8780. Stdlib-only Python/SQLite, no external dependencies, external AI or system execution. Local collector checks the server2 endpoint is exactly 192.168.0.162:6443 before metadata requests. No LAN scans. Kubernetes collector allows only fixed read paths: nodes, namespaces, pods, services, PVCs, deployments, node metrics. It never collects Secrets, pod env/commands, ConfigMaps or customer data. SQLite observations remain outside Git. Demo dataset separated by dataset flag, which is not a multi-tenant security boundary. Operator-loopback access only; Host and write-Origin allowlists. No production readiness claim.
