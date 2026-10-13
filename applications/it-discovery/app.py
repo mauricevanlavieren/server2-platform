@@ -5,8 +5,12 @@ from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 ROOT=Path(__file__).resolve().parent;DB=Path(os.environ.get('DISCOVERY_DB',str(ROOT/'.local/inventory.sqlite')));DB.parent.mkdir(parents=True,exist_ok=True)
 LOCK=threading.Lock();STOP=threading.Event();MAX_BODY=262144
 DEADLINE='2026-10-20T17:19:30Z'
+class ClosingConnection(sqlite3.Connection):
+ def __exit__(self,*args):
+  try:return super().__exit__(*args)
+  finally:self.close()
 def db():
- c=sqlite3.connect(DB,timeout=10);c.row_factory=sqlite3.Row;return c
+ c=sqlite3.connect(DB,timeout=10,factory=ClosingConnection);c.row_factory=sqlite3.Row;return c
 def init():
  with db() as c:
   c.executescript('''CREATE TABLE IF NOT EXISTS assets(id TEXT PRIMARY KEY,dataset TEXT,name TEXT,kind TEXT,facts TEXT,observed REAL);CREATE TABLE IF NOT EXISTS edges(dataset TEXT,source TEXT,target TEXT,relation TEXT,confirmed INTEGER);CREATE TABLE IF NOT EXISTS samples(time REAL,cpu REAL,memory REAL);CREATE TABLE IF NOT EXISTS cases(id INTEGER PRIMARY KEY,title TEXT,status TEXT,approved_by TEXT DEFAULT '',created REAL);CREATE TABLE IF NOT EXISTS audit(time REAL,event TEXT,details TEXT);''')
@@ -15,7 +19,7 @@ def init():
     c.execute('INSERT INTO assets VALUES(?,?,?,?,?,?)',('demo-'+str(i),'demo',name,kind,json.dumps({'os':osname,'ip':'192.0.2.'+str(i+10),'owner':'Fictief MKB','confidence':'synthetic','backup_verified':i!=3}),time.time()))
    c.executemany('INSERT INTO edges VALUES(?,?,?,?,?)',[('demo','demo-1','demo-0','onderdeel',1),('demo','demo-2','demo-0','onderdeel',1),('demo','demo-3','demo-1','draait op',1),('demo','demo-4','demo-3','beschermt mogelijk',0)])
 def read_kube(resource):
- paths={'nodes':'/api/v1/nodes','namespaces':'/api/v1/namespaces','pods':'/api/v1/pods','services':'/api/v1/services','pvcs':'/api/v1/persistentvolumeclaims','deployments':'/apis/apps/v1/deployments','metrics':'/apis/metrics.k8s.io/v1beta1/nodes'}
+ paths={'nodes':'/api/v1/nodes','namespaces':'/api/v1/namespaces','pods':'/api/v1/pods','services':'/api/v1/services','pvcs':'/api/v1/persistentvolumeclaims','deployments':'/apis/apps/v1/deployments','metrics':'/apis/metrics.k8s.io/v1beta1/nodes','podmetrics':'/apis/metrics.k8s.io/v1beta1/pods'}
  path=paths[resource]
  if os.environ.get('DISCOVERY_MODE','local')=='local':
   context=subprocess.run(['kubectl','--context','server2','config','view','--minify','-o','jsonpath={.clusters[0].cluster.server}'],capture_output=True,text=True,timeout=8)
@@ -41,9 +45,14 @@ def collect():
   info=n['status']['nodeInfo'];add(n['metadata']['uid'],n['metadata']['name'],'node',{'ip':'192.168.0.162','os':info['osImage'],'kernel':info['kernelVersion'],'k3s':info['kubeletVersion'],'runtime':info['containerRuntimeVersion'],'capacity':n['status']['capacity'],'ready':any(x['type']=='Ready' and x['status']=='True' for x in n['status']['conditions']),'owner':'Maurice','source':'Kubernetes API','smart':'unknown; root inspection required'})
  for n in ns:add(n['metadata']['uid'],n['metadata']['name'],'namespace',{'source':'Kubernetes API','owner':'Maurice'})
  for d in deploy:add(d['metadata']['uid'],d['metadata']['namespace']+'/'+d['metadata']['name'],'deployment',{'namespace':d['metadata']['namespace'],'replicas':d['spec'].get('replicas',1),'ready':d['status'].get('readyReplicas',0),'images':[c['image'] for c in d['spec']['template']['spec']['containers']],'source':'Kubernetes API'})
+ podusage={}
+ try:
+  for metric in read_kube('podmetrics')['items']:
+   podusage[(metric['metadata']['namespace'],metric['metadata']['name'])]={'cpu_m':sum(quantity(c['usage']['cpu'],'cpu') for c in metric['containers']),'memory_mib':sum(quantity(c['usage']['memory'],'memory') for c in metric['containers']),'metrics_time':metric.get('timestamp')}
+ except Exception:pass
  nodeids={n['metadata']['name']:n['metadata']['uid'] for n in node};nsids={n['metadata']['name']:n['metadata']['uid'] for n in ns}
  for p in pods:
-  id=p['metadata']['uid'];namespace=p['metadata']['namespace'];status=p['status'];add(id,namespace+'/'+p['metadata']['name'],'pod',{'namespace':namespace,'phase':status['phase'],'ready':all(x.get('ready') for x in status.get('containerStatuses',[])) and bool(status.get('containerStatuses')),'restarts':sum(x.get('restartCount',0) for x in status.get('containerStatuses',[])),'images':[c['image'] for c in p['spec']['containers']],'source':'Kubernetes API'})
+  id=p['metadata']['uid'];namespace=p['metadata']['namespace'];status=p['status'];add(id,namespace+'/'+p['metadata']['name'],'pod',{'namespace':namespace,'phase':status['phase'],'ready':all(x.get('ready') for x in status.get('containerStatuses',[])) and bool(status.get('containerStatuses')),'restarts':sum(x.get('restartCount',0) for x in status.get('containerStatuses',[])),'images':[c['image'] for c in p['spec']['containers']],'usage':podusage.get((namespace,p['metadata']['name']),{'status':'UNKNOWN'}),'source':'Kubernetes API'})
   if p['spec'].get('nodeName') in nodeids:edges.append(('live',id,nodeids[p['spec']['nodeName']],'draait op',1))
   edges.append(('live',id,nsids[namespace],'namespace',1))
  for s in services:
@@ -62,12 +71,15 @@ def collect():
  return len(assets)
 def background():
  while not STOP.is_set():
-  try:collect()
+  try:
+   collect()
+   import features
+   if hasattr(features,'app'):features.sample()
   except Exception as e:
    with db() as c:c.execute('INSERT INTO audit VALUES(?,?,?)',(time.time(),'discovery_error',type(e).__name__))
   STOP.wait(60)
 def state(dataset='live'):
- if dataset not in ('live','demo'):raise ValueError('Invalid dataset')
+ if dataset not in ('live','demo','toolkit'):raise ValueError('Invalid dataset')
  with db() as c:
   assets=[dict(x) for x in c.execute('SELECT * FROM assets WHERE dataset=? ORDER BY kind,name',(dataset,))]
   for a in assets:a['facts']=json.loads(a['facts'])
@@ -105,7 +117,7 @@ class Handler(BaseHTTPRequestHandler):
     if q.get('format',['json'])[0]=='csv':
      f=io.StringIO();w=csv.writer(f);w.writerow(['id','name','kind','observed']);w.writerows([[str(a[k]) if not str(a[k]).startswith(('=','+','-','@')) else "'"+str(a[k]) for k in ['id','name','kind','observed']] for a in assets]);return self.send(200,f.getvalue(),'text/csv; charset=utf-8')
     return self.send(200,assets)
-   files={'/':'index.html','/app.js':'app.js','/style.css':'style.css'}
+   files={'/':'index.html','/app.js':'app.js','/style.css':'style.css','/v1.js':'v1.js'}
    if u.path in files:return self.send(200,(ROOT/'static'/files[u.path]).read_bytes(),{'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'}[Path(files[u.path]).suffix])
    self.send(404,{'error':'Not found'})
   except (ValueError,KeyError):self.send(400,{'error':'Invalid request'})
@@ -134,7 +146,7 @@ class Handler(BaseHTTPRequestHandler):
    self.send(405,{'error':'System execution is disabled'})
   except Exception:self.send(400,{'error':'Invalid input; no action executed'})
 def main():
- init();threading.Thread(target=background,daemon=True).start();server=ThreadingHTTPServer((os.environ.get('DISCOVERY_BIND','127.0.0.1'),int(os.environ.get('DISCOVERY_PORT','8780'))),Handler)
+ init();import features,sys;features.setup(sys.modules[__name__]);threading.Thread(target=background,daemon=True).start();server=ThreadingHTTPServer((os.environ.get('DISCOVERY_BIND','127.0.0.1'),int(os.environ.get('DISCOVERY_PORT','8780'))),features.handler(Handler))
  try:server.serve_forever()
  finally:STOP.set();server.server_close()
 if __name__=='__main__':main()

@@ -42,7 +42,8 @@
             "metrics.k8s.io"
           ],
           "resources": [
-            "nodes"
+            "nodes",
+            "pods"
           ],
           "verbs": [
             "get",

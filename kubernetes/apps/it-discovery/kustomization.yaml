@@ -9,6 +9,7 @@
     "pvc.yaml",
     "source.yaml",
     "deployment.yaml",
-    "service.yaml"
+    "service.yaml",
+    "host-status.yaml"
   ]
 }

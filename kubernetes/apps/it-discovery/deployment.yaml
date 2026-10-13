@@ -140,6 +140,11 @@
               {
                 "name": "data",
                 "mountPath": "/data"
+              },
+              {
+                "name": "status",
+                "mountPath": "/status",
+                "readOnly": true
               }
             ]
           }
@@ -148,15 +153,23 @@
           {
             "name": "source",
             "configMap": {
-              "name": "it-discovery-source-e3ca670b1082",
+              "name": "it-discovery-source-67025d7cf892",
               "items": [
+                {
+                  "key": "features.py",
+                  "path": "features.py"
+                },
                 {
                   "key": "app.py",
                   "path": "app.py"
                 },
                 {
-                  "key": "index.html",
-                  "path": "static/index.html"
+                  "key": "ipv4_guard.py",
+                  "path": "ipv4_guard.py"
+                },
+                {
+                  "key": "v1.js",
+                  "path": "static/v1.js"
                 },
                 {
                   "key": "app.js",
@@ -167,8 +180,8 @@
                   "path": "static/style.css"
                 },
                 {
-                  "key": "ipv4_guard.py",
-                  "path": "ipv4_guard.py"
+                  "key": "index.html",
+                  "path": "static/index.html"
                 }
               ]
             }
@@ -177,6 +190,13 @@
             "name": "data",
             "persistentVolumeClaim": {
               "claimName": "inventory"
+            }
+          },
+          {
+            "name": "status",
+            "configMap": {
+              "name": "kompas-host-status",
+              "optional": true
             }
           }
         ],
