@@ -35,3 +35,5 @@ Hard deadline20 October2026 17:19:30UTC, Maurice responsible. No automatic stop 
 ## Remaining gates
 
 Owner interactive sudo, explicit short Forgejo maintenance approval, actual backup/restore proof, verified new runtime, deployment/monitoring/persistence, controlled Dashy-link integration. Phone notifications require owner-selected external account/token and explicit external processing consent. No actual external notification configured.
+
+Backup correction: first owner run stopped before SQLite snapshot/Forgejo pause because the server tree contains runtime Unix socket kine.sock. Original copy failure reproduced locally. Exclude only this exact socket at k3s server root, verify its socket type, retain unknown-special-file failure. No successful server backup/restore claimed until rerun.

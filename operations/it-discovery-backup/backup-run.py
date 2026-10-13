@@ -1,5 +1,5 @@
 """Managed mau2-only backup worker. Root execution; never prints recovery secrets."""
-import fcntl,json,os,shutil,sqlite3,subprocess,sys,time,hashlib
+import fcntl,json,os,shutil,sqlite3,subprocess,sys,time,hashlib,stat
 from pathlib import Path
 ROOT=Path('/var/lib/it-discovery-backup');REPO=Path('/var/backups/restic');PASS=Path('/etc/it-discovery-backup/restic-password');STAGE=ROOT/'staging';STATE=ROOT/'forgejo-recovery.json'
 def cmd(args,timeout=180):
@@ -31,6 +31,14 @@ def sqlite_snapshot(source,target):
  with sqlite3.connect(source.as_uri()+'?mode=ro',uri=True,timeout=10) as src,sqlite3.connect(target) as dst:
   src.backup(dst,pages=256,progress=progress,sleep=.05);assert dst.execute('PRAGMA quick_check').fetchone()[0]=='ok'
  st=source.stat();os.chown(target,st.st_uid,st.st_gid);target.chmod(st.st_mode & 0o777)
+def k3s_ignore(directory,names):
+ ignored=[name for name in names if name in ('db','logs')]
+ # Kine's live Unix socket is recreated by k3s, never backup data.
+ if Path(directory)==Path('/var/lib/rancher/k3s/server') and 'kine.sock' in names:
+  mode=(Path(directory)/'kine.sock').lstat().st_mode
+  if not stat.S_ISSOCK(mode):raise RuntimeError('Unexpected kine.sock file type')
+  ignored.append('kine.sock')
+ return ignored
 def main():
  if os.geteuid()!=0 or os.uname().nodename!='mau2':raise RuntimeError('Only root on mau2')
  os.umask(0o077);ROOT.mkdir(mode=0o700,exist_ok=True)
@@ -42,7 +50,7 @@ def main():
  STAGE.mkdir(mode=0o700)
  if (Path('/var/lib/rancher/k3s/server/db/etcd')).exists():raise RuntimeError('Expected SQLite; not etcd')
  db=Path('/var/lib/rancher/k3s/server/db/state.db');assert db.is_file()
- shutil.copytree('/var/lib/rancher/k3s/server',STAGE/'k3s/server',ignore=shutil.ignore_patterns('db','logs'),symlinks=True)
+ shutil.copytree('/var/lib/rancher/k3s/server',STAGE/'k3s/server',ignore=k3s_ignore,symlinks=True)
  sqlite_snapshot(db,STAGE/'k3s/server/db/state.db')
  shutil.copytree('/etc/rancher/k3s',STAGE/'k3s/etc',symlinks=True)
  # Existing application pause is allowed ONLY after explicit owner approval.
