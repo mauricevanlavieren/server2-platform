@@ -96,46 +96,52 @@
               }
             },
             "startupProbe": {
-              "exec": {
-                "command": [
-                  "/usr/local/bin/python",
-                  "-I",
-                  "-B",
-                  "/guard/ipv4_guard.py",
-                  "--healthcheck"
-                ]
-              },
               "periodSeconds": 5,
               "timeoutSeconds": 5,
-              "failureThreshold": 24
+              "failureThreshold": 24,
+              "httpGet": {
+                "path": "/healthz",
+                "port": "http",
+                "scheme": "HTTP",
+                "httpHeaders": [
+                  {
+                    "name": "Host",
+                    "value": "127.0.0.1:8765"
+                  }
+                ]
+              }
             },
             "readinessProbe": {
-              "exec": {
-                "command": [
-                  "/usr/local/bin/python",
-                  "-I",
-                  "-B",
-                  "/guard/ipv4_guard.py",
-                  "--healthcheck"
-                ]
-              },
               "periodSeconds": 10,
               "timeoutSeconds": 5,
-              "failureThreshold": 3
+              "failureThreshold": 3,
+              "httpGet": {
+                "path": "/healthz",
+                "port": "http",
+                "scheme": "HTTP",
+                "httpHeaders": [
+                  {
+                    "name": "Host",
+                    "value": "127.0.0.1:8765"
+                  }
+                ]
+              }
             },
             "livenessProbe": {
-              "exec": {
-                "command": [
-                  "/usr/local/bin/python",
-                  "-I",
-                  "-B",
-                  "/guard/ipv4_guard.py",
-                  "--healthcheck"
-                ]
-              },
               "periodSeconds": 20,
               "timeoutSeconds": 5,
-              "failureThreshold": 6
+              "failureThreshold": 6,
+              "httpGet": {
+                "path": "/healthz",
+                "port": "http",
+                "scheme": "HTTP",
+                "httpHeaders": [
+                  {
+                    "name": "Host",
+                    "value": "127.0.0.1:8765"
+                  }
+                ]
+              }
             },
             "volumeMounts": [
               {
