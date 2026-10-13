@@ -1,0 +1,22 @@
+{
+  "apiVersion": "v1",
+  "kind": "PersistentVolumeClaim",
+  "metadata": {
+    "name": "inventory",
+    "namespace": "it-discovery",
+    "labels": {
+      "kustomize.toolkit.fluxcd.io/prune": "disabled"
+    }
+  },
+  "spec": {
+    "storageClassName": "local-path",
+    "accessModes": [
+      "ReadWriteOnce"
+    ],
+    "resources": {
+      "requests": {
+        "storage": "1Gi"
+      }
+    }
+  }
+}

@@ -1,0 +1,182 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "Deployment",
+  "metadata": {
+    "name": "it-discovery",
+    "namespace": "it-discovery"
+  },
+  "spec": {
+    "replicas": 1,
+    "strategy": {
+      "type": "Recreate"
+    },
+    "selector": {
+      "matchLabels": {
+        "app": "it-discovery"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "it-discovery"
+        }
+      },
+      "spec": {
+        "serviceAccountName": "discovery-reader",
+        "enableServiceLinks": false,
+        "securityContext": {
+          "runAsNonRoot": true,
+          "runAsUser": 65532,
+          "runAsGroup": 65532,
+          "fsGroup": 65532,
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "containers": [
+          {
+            "name": "discovery",
+            "image": "IMAGE_DIGEST_REQUIRES_SECURITY_VERIFICATION",
+            "command": [
+              "/usr/bin/python",
+              "-B",
+              "/app/app.py"
+            ],
+            "env": [
+              {
+                "name": "DISCOVERY_MODE",
+                "value": "kubernetes"
+              },
+              {
+                "name": "DISCOVERY_BIND",
+                "value": "0.0.0.0"
+              },
+              {
+                "name": "DISCOVERY_PORT",
+                "value": "8080"
+              },
+              {
+                "name": "DISCOVERY_DB",
+                "value": "/data/inventory.sqlite"
+              },
+              {
+                "name": "PYTHONDONTWRITEBYTECODE",
+                "value": "1"
+              }
+            ],
+            "resources": {
+              "requests": {
+                "cpu": "25m",
+                "memory": "64Mi"
+              },
+              "limits": {
+                "cpu": "250m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "readOnlyRootFilesystem": true,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              }
+            },
+            "ports": [
+              {
+                "containerPort": 8080
+              }
+            ],
+            "startupProbe": {
+              "httpGet": {
+                "path": "/healthz",
+                "port": 8080,
+                "httpHeaders": [
+                  {
+                    "name": "Host",
+                    "value": "127.0.0.1:8080"
+                  }
+                ]
+              },
+              "timeoutSeconds": 4,
+              "periodSeconds": 15,
+              "failureThreshold": 12
+            },
+            "readinessProbe": {
+              "httpGet": {
+                "path": "/healthz",
+                "port": 8080,
+                "httpHeaders": [
+                  {
+                    "name": "Host",
+                    "value": "127.0.0.1:8080"
+                  }
+                ]
+              },
+              "timeoutSeconds": 4,
+              "periodSeconds": 15
+            },
+            "livenessProbe": {
+              "httpGet": {
+                "path": "/healthz",
+                "port": 8080,
+                "httpHeaders": [
+                  {
+                    "name": "Host",
+                    "value": "127.0.0.1:8080"
+                  }
+                ]
+              },
+              "timeoutSeconds": 4,
+              "periodSeconds": 30
+            },
+            "volumeMounts": [
+              {
+                "name": "source",
+                "mountPath": "/app",
+                "readOnly": true
+              },
+              {
+                "name": "data",
+                "mountPath": "/data"
+              }
+            ]
+          }
+        ],
+        "volumes": [
+          {
+            "name": "source",
+            "configMap": {
+              "name": "it-discovery-source-a48d7facdaad",
+              "items": [
+                {
+                  "key": "app.py",
+                  "path": "app.py"
+                },
+                {
+                  "key": "index.html",
+                  "path": "static/index.html"
+                },
+                {
+                  "key": "app.js",
+                  "path": "static/app.js"
+                },
+                {
+                  "key": "style.css",
+                  "path": "static/style.css"
+                }
+              ]
+            }
+          },
+          {
+            "name": "data",
+            "persistentVolumeClaim": {
+              "claimName": "inventory"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

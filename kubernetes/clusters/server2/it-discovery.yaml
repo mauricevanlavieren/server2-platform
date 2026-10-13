@@ -1,0 +1,24 @@
+{
+  "apiVersion": "kustomize.toolkit.fluxcd.io/v1",
+  "kind": "Kustomization",
+  "metadata": {
+    "name": "it-discovery",
+    "namespace": "flux-system"
+  },
+  "spec": {
+    "suspend": true,
+    "interval": "10m",
+    "path": "./kubernetes/apps/it-discovery",
+    "prune": true,
+    "wait": true,
+    "sourceRef": {
+      "kind": "GitRepository",
+      "name": "flux-system"
+    },
+    "dependsOn": [
+      {
+        "name": "infrastructure"
+      }
+    ]
+  }
+}

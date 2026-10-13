@@ -1,0 +1,24 @@
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {
+    "name": "it-discovery",
+    "namespace": "it-discovery"
+  },
+  "spec": {
+    "type": "ClusterIP",
+    "ipFamilies": [
+      "IPv4"
+    ],
+    "ipFamilyPolicy": "SingleStack",
+    "selector": {
+      "app": "it-discovery"
+    },
+    "ports": [
+      {
+        "port": 8080,
+        "targetPort": 8080
+      }
+    ]
+  }
+}
