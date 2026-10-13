@@ -36,11 +36,11 @@
         "containers": [
           {
             "name": "discovery",
-            "image": "IMAGE_DIGEST_REQUIRES_SECURITY_VERIFICATION",
+            "image": "cgr.dev/chainguard/python@sha256:3e56a2973d429d5bf28d8dd99f929ea6344b0bf054c432f09cf579f747ee3114",
             "command": [
               "/usr/bin/python",
               "-B",
-              "/app/app.py"
+              "/app/ipv4_guard.py"
             ],
             "env": [
               {
@@ -148,7 +148,7 @@
           {
             "name": "source",
             "configMap": {
-              "name": "it-discovery-source-a48d7facdaad",
+              "name": "it-discovery-source-e3ca670b1082",
               "items": [
                 {
                   "key": "app.py",
@@ -165,6 +165,10 @@
                 {
                   "key": "style.css",
                   "path": "static/style.css"
+                },
+                {
+                  "key": "ipv4_guard.py",
+                  "path": "ipv4_guard.py"
                 }
               ]
             }
@@ -175,7 +179,10 @@
               "claimName": "inventory"
             }
           }
-        ]
+        ],
+        "nodeSelector": {
+          "kubernetes.io/arch": "amd64"
+        }
       }
     }
   }

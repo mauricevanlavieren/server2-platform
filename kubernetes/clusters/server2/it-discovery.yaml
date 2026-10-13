@@ -6,7 +6,7 @@
     "namespace": "flux-system"
   },
   "spec": {
-    "suspend": true,
+    "suspend": false,
     "interval": "10m",
     "path": "./kubernetes/apps/it-discovery",
     "prune": true,

@@ -10,3 +10,4 @@ resources:
   - forgejo.yaml
   - postkamer-isolation.yaml
   - postkamer.yaml
+  - it-discovery.yaml
