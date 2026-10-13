@@ -1,0 +1,13 @@
+# Postkamer temporary test-MVP
+
+Owner responsible for termination, cleanup and GHCR-token revocation: **mauricevanlavieren (Maurice)**. Approved deployment of synthetic data only; no real mail, external AI or public ingress. Exception expires **2026-10-20 17:19:30 UTC**, conservatively seven days from release preparation and before user outer deadline 2026-10-21 12:00 UTC. No automatic extension on pod replacement. Operator must stop by deadline; this record/annotation is not an automatic Kubernetes expiry controller.
+
+Image: ghcr.io/mauricevanlavieren/postkamer@sha256:a693c575a290dec1cd857e750c07a6752afd8558de2351e2920e24be37b92773. Known nine blocking advisory IDs/45 matches (44 High, one Unknown) accepted only for this exact isolated fictitious demo; independent publisher provenance remains missing. Regular application CI/securitygate stays unchanged and FAIL. No allowlists.
+
+One replica, Recreate, local-path 1Gi RWO PVC, requests50m/64Mi, limits250m/256Mi, UID/GID/fsGroup10001, drop ALL, no escalation, readonly root, RuntimeDefault. Immutable wrapper ConfigMap adds an irreversible seccomp AF_INET6 filter before application/exec-healthchecks; preserves RuntimeDefault. Operator kubectl-exec processes outside wrapper do not inherit the app filter: use wrapper for diagnostics and probes, no arbitrary app-side exec. No CNI IPv6 enforcement claim. No host networking or global changes.
+
+postkamer/postkamer-ghcr-pull Secret is owner-created outside Git, with classic read:packages-only token; never commit credential content. Secret is not defined in this repository. Default-deny ingress/egress, no DNS exception needed. Only ClusterIP; operator access: kubectl --context server2 -n postkamer port-forward --address 127.0.0.1 service/postkamer 8766:8765; open http://127.0.0.1:8766.
+
+Rollback/expiry: commit only postkamer deployment replicas:0 via GitOps and reconcile own app; preserve PVC and deny-all. Emergency: suspend only postkamer reconciliation, scale only postkamer deployment to zero, then record replicas0 in Git before resume. Suspension alone does not stop pods. Initial deployment has no previous image release.
+
+Removal: scale zero; remove own workload/Service/ConfigMap via Flux, then own Flux references; preserve PVC/namespace (prune-disabled) until data-destruction consent. Inspect local-path reclaimPolicy before PVC deletion; local-path is not backup/HA or guaranteed quota. Keep deny-all until pods are gone. Remove own pull-secret, revoke read-token in GitHub, then remove remaining own namespace/storage only with approval. Verify existing Flux/Forgejo/DNS workloads.

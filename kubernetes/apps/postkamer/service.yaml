@@ -1,0 +1,25 @@
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {
+    "name": "postkamer",
+    "namespace": "postkamer"
+  },
+  "spec": {
+    "type": "ClusterIP",
+    "ipFamilyPolicy": "SingleStack",
+    "ipFamilies": [
+      "IPv4"
+    ],
+    "selector": {
+      "app.kubernetes.io/name": "postkamer"
+    },
+    "ports": [
+      {
+        "name": "http",
+        "port": 8765,
+        "targetPort": "http"
+      }
+    ]
+  }
+}

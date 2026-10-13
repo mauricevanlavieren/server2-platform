@@ -8,3 +8,5 @@ resources:
   - apps.yaml
   - forgejo-secrets.yaml
   - forgejo.yaml
+  - postkamer-isolation.yaml
+  - postkamer.yaml
