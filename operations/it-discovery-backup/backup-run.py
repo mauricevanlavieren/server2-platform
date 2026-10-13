@@ -1,5 +1,6 @@
 """Managed mau2-only backup worker. Root execution; never prints recovery secrets."""
-import fcntl,json,os,shutil,sqlite3,subprocess,sys,time,hashlib,stat
+from contextlib import closing
+import fcntl,json,os,shutil,sqlite3,subprocess,sys,time,hashlib,stat,traceback
 from pathlib import Path
 ROOT=Path('/var/lib/it-discovery-backup');REPO=Path('/var/backups/restic');PASS=Path('/etc/it-discovery-backup/restic-password');STAGE=ROOT/'staging';STATE=ROOT/'forgejo-recovery.json'
 def cmd(args,timeout=180):
@@ -28,8 +29,10 @@ def sqlite_snapshot(source,target):
  def progress(*_):
   if time.monotonic()>deadline:raise TimeoutError('SQLite snapshot deadline')
  target.parent.mkdir(parents=True,exist_ok=True)
- with sqlite3.connect(source.as_uri()+'?mode=ro',uri=True,timeout=10) as src,sqlite3.connect(target) as dst:
-  src.backup(dst,pages=256,progress=progress,sleep=.05);assert dst.execute('PRAGMA quick_check').fetchone()[0]=='ok'
+ with closing(sqlite3.connect(source.as_uri()+'?mode=ro',uri=True,timeout=10)) as src,closing(sqlite3.connect(target)) as dst:
+  src.backup(dst,pages=256,progress=progress,sleep=.05)
+  dst.commit();assert dst.execute('PRAGMA journal_mode=DELETE').fetchone()[0]=='delete'
+  assert dst.execute('PRAGMA quick_check').fetchone()[0]=='ok'
  st=source.stat();os.chown(target,st.st_uid,st.st_gid);target.chmod(st.st_mode & 0o777)
 def k3s_ignore(directory,names):
  ignored=[name for name in names if name in ('db','logs')]
@@ -91,10 +94,15 @@ def main():
  for original in STAGE.rglob('*'):
   if not original.is_file() or original.is_symlink():continue
   restoredfile=restored/original.relative_to(STAGE);assert digest(original)==digest(restoredfile);assert original.stat().st_uid==restoredfile.stat().st_uid and original.stat().st_gid==restoredfile.stat().st_gid;verified+=1
+ # Verify every restored byte BEFORE opening any restored SQLite database.
+ # SQLite read-only opens can change shared-memory sidecars; never skip hashing them.
+ for original in STAGE.rglob('*'):
+  if not original.is_file() or original.is_symlink():continue
+  restoredfile=restored/original.relative_to(STAGE)
   if original.name.endswith(('.db','.sqlite')):
    with original.open('rb') as f:signature=f.read(16)
    if signature==b'SQLite format 3\x00':
-    with sqlite3.connect(restoredfile.as_uri()+'?mode=ro',uri=True) as db:assert db.execute('PRAGMA quick_check').fetchone()[0]=='ok'
+    with closing(sqlite3.connect(restoredfile.as_uri()+'?mode=ro',uri=True)) as db:assert db.execute('PRAGMA quick_check').fetchone()[0]=='ok'
  for git in (restored/'forgejo/data').rglob('HEAD'):
   if git.parent.name.endswith('.git'):cmd(['/usr/bin/git','-c','safe.directory='+str(git.parent),'--git-dir='+str(git.parent),'fsck','--full'],timeout=60)
  cmd(R+['forget','--tag','mau2-platform','--group-by','host,tags','--keep-daily','7','--keep-weekly','4','--keep-monthly','3','--prune'],timeout=900)
@@ -105,8 +113,8 @@ def main():
 if __name__=='__main__':
  try:main()
  except Exception as e:
-  result={'status':'FAIL','time':time.time(),'error_type':type(e).__name__}
+  result={'status':'FAIL','time':time.time(),'error_type':type(e).__name__,'frames':[{'function':f.name,'line':f.lineno} for f in traceback.extract_tb(e.__traceback__)]}
   if ROOT.exists():(ROOT/'last-result.json').write_text(json.dumps(result))
   public=Path('/var/lib/it-discovery-agent/public/backup.json')
   if public.parent.is_dir():public.write_text(json.dumps(result));public.chmod(0o644)
-  print('Backup FAIL: '+type(e).__name__+'; no secret data printed',file=sys.stderr);sys.exit(1)
+  print(json.dumps(result),file=sys.stderr);sys.exit(1)
