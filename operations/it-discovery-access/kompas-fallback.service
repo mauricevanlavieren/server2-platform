@@ -1,0 +1,14 @@
+[Unit]
+Description=Kompas managed localhost fallback
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Environment=KUBECONFIG=/home/mau/.kube/config
+ExecStart=/usr/bin/python3 -I -B %h/.local/lib/kompas-access/fallback.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+[Install]
+WantedBy=default.target
