@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-15",
+  "postkamer": {
+    "python": "3.12.3",
+    "unittest": {
+      "passed": 54,
+      "failed": 0
+    },
+    "included_node_ui_regression_cases": 9,
+    "container_build": "PASS",
+    "container_smoke_checks": {
+      "health": "PASS",
+      "nonroot": "PASS",
+      "unused_packaging_removed": "PASS",
+      "readonly_root": "PASS",
+      "ipv4_wildcard_binding": "PASS",
+      "hard_limits": "PASS",
+      "graceful_stop_no_oom": "PASS",
+      "draft_survives_restart": "PASS",
+      "draft_survives_container_replacement": "PASS",
+      "no_egress_or_published_ports": "PASS",
+      "docker_healthcheck_configured": "PASS"
+    },
+    "container_python": "3.13.16",
+    "liblzma_fetch_checksum": "PASS"
+  },
+  "platform_status_api": {
+    "node": "24.21.0",
+    "npm_ci_ignore_scripts": "PASS",
+    "tests_passed": 2,
+    "tests_failed": 0,
+    "npm_audit_vulnerabilities": 0,
+    "container_build": "PASS"
+  },
+  "limitations": [
+    "No fresh Trivy image vulnerability scan or SBOM.",
+    "No deployment, imagepush, workflow activation or end-to-end production verification.",
+    "Status-api base is a mutable tag; unchanged source."
+  ],
+  "no_source_secret_pattern_findings": true,
+  "synthetic_fixture_validation": "40 rows, tenant demo, hash verified, .test email addresses"
+}
