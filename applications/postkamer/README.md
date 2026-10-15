@@ -24,15 +24,18 @@ Standaard alleen `http://127.0.0.1:8765`, database `.local/demo.sqlite`. Gebruik
 
 Binding is uitsluitend loopback of alle IPv4-interfaces. De Host-allowlist staat uitsluitend expliciete loopback-authorities met poort toe, geen wildcard/remote hostname. PATCH vereist dezelfde HTTP Origin. Een afwijkende lokale forwardpoort moet expliciet in de allowlist worden opgenomen. CLI `--port` heeft voorrang en stelt de bijbehorende lokale authorities in; CLI `--db` heeft voorrang op het databasepad. Ongeldige configuratie stopt veilig, zonder waarden of inhoud te loggen.
 
-## Container — voorbereide kandidaat, securitygate nog FAIL
+## Container — uitsluitend lokale fase-10-remediatiekandidaat
 
-De Dockerfile gebruikt officiële `library/python:3.13.16-slim-trixie` met een geverifieerde **amd64-manifestdigest**. Geen apt/pip-installatie, externe runtimepackages of downloads tijdens buildstappen. Docker haalt wel de gepinde base op. Bron en fixture zijn expliciet gekopieerd; `.dockerignore` sluit overige bestanden standaard uit. Gebruiker/groep 10001, containerpoort 8765. SIGTERM stopt de applicatie gecontroleerd. Healthcheck: `python -B -m maildemo.healthcheck` controleert SQLite/FTS5, 40 berichten en uitgeschakeld verzenden/externe AI. De healthcheck gebruikt uitsluitend loopback en negeert proxy-environmentconfiguratie.
+Deze lokale branch gebruikt officiële `library/python:3.13.16-alpine3.23`, gepind op de linux/amd64-manifestdigest. Python blijft 3.13.16; libc verandert naar musl en SQLite naar 3.53.4. Zlib 1.3.2-r1 en libseccomp 2.6.1-r0 worden als native stabiele APKs op checksum vastgepind en door apk met de bestaande vertrouwde Alpine-sleutels geverifieerd. Geen `allow-untrusted`, distrovermenging of verwijderde package-inventaris. Buildstappen werken zonder netwerk; Docker kan wel de gepinde base ophalen. Pip/ensurepip blijven verwijderd.
 
-Alleen lokaal bouwen/testen:
+Appcode, synthetische brondata, gebruiker/groep10001, poort8765 en healthcheck blijven gelijk. De bestaande extra IPv6/seccomp-guard uit de platformconfiguratie is ongewijzigd lokaal getest; libseccomp is daarvoor expliciet behouden. Functionele tests, containerchecks en synthetische database-roundtrip naar de oude SQLiteversie slagen. De ongewijzigde securitygate geeft lokaal PASS; dit is geen toestemming voor publicatie of deployment. Zie [lokaal remediatieverslag](../../docs/security/postkamer-remediation-20261015.md).
+
+Alleen lokaal bouwen/testen met een nieuwe eigen tag:
 
 ```bash
-docker build --platform linux/amd64 --network none -t postkamer:phase2 .
-python3 -B tools/container_smoke.py postkamer:phase2
+python3 -B tools/fetch_security_update.py
+docker build --platform linux/amd64 --network none -t postkamer-local-remediation:candidate .
+python3 -B tools/container_smoke.py postkamer-local-remediation:candidate
 ```
 
 De smoke-test maakt uitsluitend eigen unieke Docker-containers en een eigen wegwerpvolume, zonder netwerk/poorten, onder 250m CPU en 256Mi. Hij verwijdert deze resources in `finally`; geforceerd doden van het testproces of engine-uitval kan handmatige cleanup van de gerapporteerde eigen namen vereisen. Dit is geen bewakingsframework of Kubernetes-runner.
@@ -47,14 +50,8 @@ Stop de applicatie vóór een consistente SQLite-backup; kopieer uitsluitend het
 
 ## CI en security
 
-`.github/workflows/ci.yml`: gepinde Actions-commits, Python/Node-tests, amd64-build, geïsoleerde container-smoke-test, checksumgeverifieerde Trivy 0.75.0, secretscan, kwetsbaarheidsscan en afgeleid CycloneDX-SBOM. High/Critical/Unknown en ontbrekend scanbewijs blokkeren. Geen `ignore-unfixed`, registrylogin, push of deployment. De bekende kandidaatbevindingen laten deze CI momenteel terecht falen. GitHub-hosted uitvoering en workflowintegratie zijn nog niet bewezen.
+De geneste `.github/workflows`-bestanden zijn historische bronprovenance en activeren geen CI vanuit deze applicatiemap. Het nieuwe Postkamer-ontwerp in server2-platform/PR #5 staat nog uit en is in fase10 niet gewijzigd of gemerged. De oude publicatieketen blijft intact. Lokaal is Trivy0.76.0 met dezelfde verse database op origineel en kandidaat gebruikt: 45 blokkerende matches versus0; volledige package-inventaris en ongewijzigde gate behouden. Geen ignore-unfixed, suppression, nieuwe risicoacceptatie, registrylogin, push of deployment. Een lokale groene scan is geen uitputtend bewijs van afwezigheid van kwetsbaarheden of productieacceptatie.
 
 ## Deploymentgrens
 
-Het aparte platformvoorstel volgt server2-platform/Flux en blijft gesuspendeerd. De final-image is **niet gepubliceerd**: er is dus geen registrydigest om te pinnen. De stagingmanifestwaarde `IMAGE_DIGEST_REQUIRED` is bewust niet deploybaar. Eerst securitygate afronden, publication afzonderlijk goedkeuren, registrydigest verifiëren, manifests renderen en daarna apart toestemming voor deployment vragen.
-
-Geen authenticatie: uitsluitend één vertrouwde lokale operator via een toekomstige `kubectl port-forward --address 127.0.0.1`; geen Ingress, NodePort of publieke URL. Vóór multi-user-/publieke toegang zijn authenticatie, autorisatie en aanvullend serverhardening noodzakelijk. De stdlib-webserver is een begrensde demokandidaat, geen productiegarantie.
-
-## GitHub-staging
-
-Deployment blijft NO-GO; zie SECURITY-STAGING.md. Bevestig eerst de private doelrepository. Geen automatische repositorycreatie, push, imagepublicatie of Flux-activering. Gegenereerde evidence en lokale databases horen niet in broncommits.
+Fase10 wijzigt geen server, manifest, Flux-resource, bestaande deployment of gepinde registrydigest. Deze nieuwe kandidaat staat uitsluitend lokaal, is niet gepubliceerd en heeft geen nieuwe GHCR-digest. Afzonderlijke toestemming en review zijn nodig vóór enige publicatie, merge of productieactie. Tests gebruikten uitsluitend synthetische data en eigen tijdelijke lokale containers/volumes; geen productiedatabase of credentials. Bestaande dataherstel- en toegangsprocedures blijven afzonderlijk van deze image-remediatie.
