@@ -1,0 +1,9 @@
+# Postkamer migration — disabled review preparation
+
+Phase 9. Canonical source applications/postkamer; existing runtime and old publication chain are unchanged. This branch adds only disabled validation and blocked publication design, plus helpers. No merge or activation is authorised.
+
+Validation design: pull_request/main-push path filters for application, own workflow and helpers; tests (including Node UI), static stdlib runtime-dependency boundary, checksum-pinned input, local container build, isolated smokechecks, fresh vulnerability/secret scan and unchanged tools/security_gate.py. Every job has an unconditional false guard. Tokens contents:read; actions fixed SHA; checkout does not persist credentials. No raw secret report uploaded. Scanner 0.76.0 official binary checksum pinned; current DB required at run time. No inherited ignorefile, ignore-unfixed or 45-match bypass.
+
+Publication is a manual, disabled exit-2 stub without credentials or push implementation. A future implementation requires separately approved server2-platform package Actions access (minimum write for publishing; read for pull-only jobs), job-local GITHUB_TOKEN packages:write only in a protected publication job, explicitly reviewed exact main SHA, unique candidate tag, source/revision metadata and fresh successful gates. No packages permission or environment setting is changed by this branch. Private-before-publication remains a conservative design choice for separate approval. No automatic deployment, mutable production tag update or reuse of another run's untrusted build artifact.
+
+Current findings and encrypted OCI recovery evidence are documented in the private homelab-architecture repository. Local tests/build/smoke can pass while security acceptance fails. No exception or false-positive suppression is added here. The old Postkamer repository/package must remain until rights, security acceptance, publisher validation and rollback are independently approved.
