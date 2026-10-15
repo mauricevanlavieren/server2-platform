@@ -1,0 +1,30 @@
+name: DRAFT disabled Platform Status API validation
+'on':
+  workflow_dispatch: {}
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash --noprofile --norc -e -o pipefail {0}
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    if: ${{ false }}
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with:
+        ref: ${{ github.sha }}
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: '24'
+    - name: Locked install without lifecycle scripts
+      run: npm ci --ignore-scripts --no-audit --no-fund
+      working-directory: applications/platform-status-api
+    - name: Tests
+      run: npm test
+      working-directory: applications/platform-status-api
+    - name: Dependency vulnerability gate
+      run: npm audit --audit-level=high
+      working-directory: applications/platform-status-api
