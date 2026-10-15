@@ -1,0 +1,47 @@
+name: Postkamer PR tests build and security
+'on':
+  pull_request:
+    branches: [main]
+    paths: ['applications/postkamer/**', '.github/workflows/postkamer-source-ci.yml', 'ci/postkamer/**']
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash --noprofile --norc -e -o pipefail {0}
+    working-directory: applications/postkamer
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.13.16'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Runtime dependency boundary
+        run: python -B "$GITHUB_WORKSPACE/ci/postkamer/check-runtime-dependencies.py" .
+      - name: Unit and UI tests
+        run: python -B -m unittest discover -s tests -v
+      - name: Checksum pinned build input
+        run: python -B tools/fetch_security_update.py
+      - name: Local container build only
+        run: docker build --platform linux/amd64 --network none -t postkamer-review:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} .
+      - name: Isolated container checks
+        run: python -B tools/container_smoke.py postkamer-review:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}
+      - name: Install checksum verified scanner
+        run: bash "$GITHUB_WORKSPACE/ci/postkamer/install-trivy.sh"
+      - name: Source secret gate
+        run: trivy fs --scanners secret --exit-code 1 --format json --output "$RUNNER_TEMP/postkamer-secrets.json" .
+      - name: Container dependency scan and SBOM
+        run: |
+          trivy image --image-src docker --scanners vuln --list-all-pkgs --format json --output "$RUNNER_TEMP/postkamer-scan.json" postkamer-review:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}
+          trivy convert --format cyclonedx --output "$RUNNER_TEMP/postkamer-sbom.cdx.json" "$RUNNER_TEMP/postkamer-scan.json"
+      - name: Unchanged security gate
+        run: python -B tools/security_gate.py "$RUNNER_TEMP/postkamer-scan.json"
+# LOCAL PROPOSAL: publication and activation require explicit owner approval.
+# No registry credentials, package-write permission, publication, or deployment.
