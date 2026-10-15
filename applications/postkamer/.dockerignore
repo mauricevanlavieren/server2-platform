@@ -1,0 +1,11 @@
+**
+!Dockerfile
+!maildemo/
+!maildemo/**
+!data/
+!data/messages.json
+**/__pycache__/**
+**/*.pyc
+
+!vendor/
+!vendor/liblzma.deb

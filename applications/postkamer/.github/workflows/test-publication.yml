@@ -1,0 +1,92 @@
+{
+  "name": "Postkamer manual test publication (fixed source)",
+  "on": {
+    "workflow_dispatch": {
+      "inputs": {
+        "confirm": {
+          "description": "Approved publication only despite exactly 45 known blocking matches; deployment exception remains inactive. Enter PUBLISH-3490406-DEMO-ONLY",
+          "required": true,
+          "type": "string"
+        }
+      }
+    }
+  },
+  "permissions": {},
+  "concurrency": {
+    "group": "postkamer-manual-test-publication",
+    "cancel-in-progress": false
+  },
+  "jobs": {
+    "publish": {
+      "if": "github.repository == 'mauricevanlavieren/postkamer' && github.event_name == 'workflow_dispatch'",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 20,
+      "permissions": {
+        "contents": "read",
+        "packages": "write"
+      },
+      "defaults": {
+        "run": {
+          "shell": "bash --noprofile --norc -e -o pipefail {0}"
+        }
+      },
+      "env": {
+        "IMAGE": "ghcr.io/mauricevanlavieren/postkamer",
+        "TAG": "test-mvp-3490406-${{ github.run_id }}-${{ github.run_attempt }}"
+      },
+      "steps": [
+        {
+          "name": "Check manual authorization",
+          "env": {
+            "CONFIRM": "${{ inputs.confirm }}"
+          },
+          "run": "test \"$GITHUB_REPOSITORY\" = mauricevanlavieren/postkamer\ntest \"$GITHUB_ACTOR\" = mauricevanlavieren\ntest \"$GITHUB_REF\" = refs/heads/main\ntest \"$CONFIRM\" = PUBLISH-3490406-DEMO-ONLY"
+        },
+        {
+          "uses": "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "with": {
+            "ref": "3490406fc55c7e914fa2ea548db2251dae1e656a",
+            "persist-credentials": false
+          }
+        },
+        {
+          "uses": "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "with": {
+            "python-version": "3.13.16"
+          }
+        },
+        {
+          "uses": "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "with": {
+            "node-version": "24"
+          }
+        },
+        {
+          "name": "Validate and build fixed source",
+          "run": "test \"$(git rev-parse HEAD)\" = 3490406fc55c7e914fa2ea548db2251dae1e656a\nmkdir -p evidence\npython -B -m unittest discover -s tests -v 2>&1 | tee evidence/tests.txt\npython -B tools/fetch_security_update.py\ndocker build --platform linux/amd64 --network none --label org.opencontainers.image.source=https://github.com/mauricevanlavieren/postkamer --label org.opencontainers.image.revision=3490406fc55c7e914fa2ea548db2251dae1e656a --label org.opencontainers.image.description=\"Synthetic test demo; deployment exception inactive; no production use\" -t \"$IMAGE:$TAG\" .\npython -B tools/container_smoke.py \"$IMAGE:$TAG\" > evidence/container-smoke.json\ndocker image inspect \"$IMAGE:$TAG\" --format '{{.Id}}' > evidence/local-config-id.txt"
+        },
+        {
+          "name": "Unchanged securitygate and explicit publication-only exception",
+          "run": "curl --fail --silent --show-error --location https://github.com/aquasecurity/trivy/releases/download/v0.75.0/trivy_0.75.0_Linux-64bit.tar.gz -o \"$RUNNER_TEMP/trivy.tar.gz\"\necho \"c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f  $RUNNER_TEMP/trivy.tar.gz\" | sha256sum -c -\ntar -xzf \"$RUNNER_TEMP/trivy.tar.gz\" -C \"$RUNNER_TEMP\" trivy\n\"$RUNNER_TEMP/trivy\" fs --scanners secret --exit-code 1 --format json --output \"$RUNNER_TEMP/secrets.json\" .\n\"$RUNNER_TEMP/trivy\" image --image-src docker --scanners vuln --format json --output evidence/scan.json \"$IMAGE:$TAG\"\n\"$RUNNER_TEMP/trivy\" convert --format cyclonedx --output evidence/sbom.cdx.json evidence/scan.json\npython - <<'PYCODE'\nimport json,subprocess\nfrom pathlib import Path\ns=json.loads(Path('evidence/scan.json').read_text())\nactual=sorted([v['VulnerabilityID'],v['PkgName'],v['InstalledVersion'],v.get('Severity','')] for r in s['Results'] for v in r.get('Vulnerabilities',[]) if v.get('Severity') not in ('LOW','MEDIUM'))\nexpected=[['CVE-2025-69720', 'libncursesw6', '6.5+20250216-2', 'HIGH'], ['CVE-2025-69720', 'libtinfo6', '6.5+20250216-2', 'HIGH'], ['CVE-2025-69720', 'ncurses-base', '6.5+20250216-2', 'HIGH'], ['CVE-2025-69720', 'ncurses-bin', '6.5+20250216-2', 'HIGH'], ['CVE-2026-16742', 'libsystemd0', '257.13-1~deb13u1', 'HIGH'], ['CVE-2026-16742', 'libudev1', '257.13-1~deb13u1', 'HIGH'], ['CVE-2026-54369', 'libacl1', '2.3.2-2+b1', 'HIGH'], ['CVE-2026-76642', 'bsdutils', '1:2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-76642', 'libblkid1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-76642', 'liblastlog2-2', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-76642', 'libmount1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-76642', 'libsmartcols1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-76642', 'libuuid1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-76642', 'login', '1:4.16.0-2+really2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-76642', 'mount', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-76642', 'util-linux', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78408', 'bsdutils', '1:2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78408', 'libblkid1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78408', 'liblastlog2-2', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78408', 'libmount1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78408', 'libsmartcols1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78408', 'libuuid1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78408', 'login', '1:4.16.0-2+really2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78408', 'mount', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78408', 'util-linux', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78409', 'bsdutils', '1:2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78409', 'libblkid1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78409', 'liblastlog2-2', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78409', 'libmount1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78409', 'libsmartcols1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78409', 'libuuid1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78409', 'login', '1:4.16.0-2+really2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78409', 'mount', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78409', 'util-linux', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78410', 'bsdutils', '1:2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78410', 'libblkid1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78410', 'liblastlog2-2', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78410', 'libmount1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78410', 'libsmartcols1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78410', 'libuuid1', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78410', 'login', '1:4.16.0-2+really2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78410', 'mount', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-78410', 'util-linux', '2.41.5-0+deb13u1', 'HIGH'], ['CVE-2026-82560', 'perl-base', '5.40.1-6+deb13u1', 'UNKNOWN'], ['CVE-2026-9538', 'perl-base', '5.40.1-6+deb13u1', 'HIGH']]\nassert actual==expected, 'Changed blocking findings: STOP; fresh approval required'\nr=subprocess.run(['python','-B','tools/security_gate.py','evidence/scan.json'])\nassert r.returncode==1, 'Unexpected gate result; STOP'\nPath('evidence/publication-exception.json').write_text(json.dumps({'publication_only':True,'deployment_exception_active':False,'matches':45,'unique_advisories':9,'gate_exit':r.returncode}))\nPYCODE"
+        },
+        {
+          "name": "Publish once and verify registry artifact",
+          "env": {
+            "GHCR_TOKEN": "${{ github.token }}"
+          },
+          "run": "export DOCKER_CONFIG=\"$RUNNER_TEMP/postkamer-registry-auth\"\nmkdir -m 700 \"$DOCKER_CONFIG\"\ntrap 'docker logout ghcr.io >/dev/null 2>&1 || true; rm -rf \"$DOCKER_CONFIG\"' EXIT\nprintf '%s' \"$GHCR_TOKEN\" | docker login ghcr.io -u mauricevanlavieren --password-stdin\ndocker push \"$IMAGE:$TAG\" | tee evidence/push.txt\ndocker manifest inspect \"$IMAGE:$TAG\" > evidence/registry-manifest.json\npython - <<'PYCODE'\nimport hashlib,json,os,re\nfrom pathlib import Path\np=Path('evidence');m=json.loads((p/'registry-manifest.json').read_text())\nassert m['config']['digest']==(p/'local-config-id.txt').read_text().strip(), 'Registry config differs; STOP'\na=re.findall(r'digest: (sha256:[0-9a-f]{64})', (p/'push.txt').read_text());assert len(a)==1\n(p/'published-digest.txt').write_text(os.environ['IMAGE']+'@'+a[0]+'\\n')\nPYCODE\ndocker pull \"$(cat evidence/published-digest.txt)\"\ntest \"$(docker image inspect \"$(cat evidence/published-digest.txt)\" --format '{{.Id}}')\" = \"$(cat evidence/local-config-id.txt)\"\nprintf 'Test publication only; deployment remains NO-GO. Digest: ' >> \"$GITHUB_STEP_SUMMARY\"\ncat evidence/published-digest.txt >> \"$GITHUB_STEP_SUMMARY\"\nGH_TOKEN=\"$GHCR_TOKEN\" gh api users/mauricevanlavieren/packages/container/postkamer --jq '{name,visibility}' > evidence/package-visibility.json\npython - <<'PYPRIVATE'\nimport json\nfrom pathlib import Path\nassert json.loads(Path(\"evidence/package-visibility.json\").read_text())[\"visibility\"]==\"private\", \"Package privacy not verified; STOP\"\nPYPRIVATE\n"
+        },
+        {
+          "name": "Preserve evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "with": {
+            "name": "postkamer-test-publication-${{ github.run_id }}",
+            "path": "evidence/",
+            "retention-days": 14
+          }
+        }
+      ]
+    }
+  }
+}

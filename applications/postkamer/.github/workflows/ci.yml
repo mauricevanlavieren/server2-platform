@@ -1,0 +1,58 @@
+name: Postkamer CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+defaults:
+  run:
+    shell: bash
+permissions:
+  contents: read
+concurrency:
+  group: postkamer-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.13.16'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Tests
+        run: |
+          mkdir -p evidence
+          python -B -m unittest discover -s tests -v 2>&1 | tee evidence/tests.txt
+      - name: Fetch checksum-pinned official security update
+        run: python -B tools/fetch_security_update.py
+      - name: Build pinned amd64 image
+        run: docker build --platform linux/amd64 --network none -t postkamer:ci .
+      - name: Isolated container regression
+        run: python -B tools/container_smoke.py postkamer:ci > evidence/container-smoke.json
+      - name: Checksum-verified scanner
+        run: |
+          curl --fail --silent --show-error --location https://github.com/aquasecurity/trivy/releases/download/v0.75.0/trivy_0.75.0_Linux-64bit.tar.gz -o /tmp/trivy.tar.gz
+          echo 'c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f  /tmp/trivy.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/trivy.tar.gz -C /tmp trivy
+      - name: Secret scan
+        run: /tmp/trivy fs --scanners secret --exit-code 1 --format json --output /tmp/postkamer-secrets.json .
+      - name: Vulnerabilities and SBOM
+        run: |
+          /tmp/trivy image --image-src docker --scanners vuln --format json --output evidence/scan.json postkamer:ci
+          /tmp/trivy convert --format cyclonedx --output evidence/sbom.cdx.json evidence/scan.json
+          python -B tools/security_gate.py evidence/scan.json
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: postkamer-ci-evidence
+          path: evidence/
+          retention-days: 14
+# Deliberately no registry login, image push, signing or deployment.

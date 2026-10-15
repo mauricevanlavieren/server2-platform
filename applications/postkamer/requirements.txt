@@ -1,0 +1,1 @@
+# Geen externe Python-packages. Python 3.12 met SQLite/FTS5 volstaat.
