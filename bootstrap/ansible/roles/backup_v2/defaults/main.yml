@@ -1,0 +1,46 @@
+---
+backup_v2_deployment_approved: false
+backup_v2_enabled: false
+backup_v2_runtime_release_approved: false
+backup_v2_inventory_handoff_approved: false
+backup_v2_wol_enabled: false
+backup_v2_allow_application_pause: false
+backup_v2_retention_enabled: false
+backup_v2_shutdown_enabled: false
+backup_v2_target: server2
+backup_v2_calendar: "*-*-* 03:30:00 UTC"
+backup_v2_stage_bytes: 268435456
+backup_v2_control_public_key: ""
+backup_v2_contracts:
+  k3s:
+    approved: false
+    kind: k3s-coherent
+    source: /var/lib/rancher/k3s/server/db/state.db
+    source_identity: mau2/k3s/sqlite
+    encryption_inventory_verified: false
+    rotation_interlock_verified: false
+    recovery_paths: []
+  forgejo:
+    approved: false
+    kind: forgejo-fenced
+    producer_reviewed: false
+    producer_contract: PENDING-OWNER-REVIEW
+    sealed_export: /run/server2-sealed-exports/forgejo
+    source_identity: forgejo/forgejo-data
+  inventory:
+    approved: false
+    kind: sqlite
+    source: /var/lib/rancher/k3s/storage/pvc-27ca3eab-adb9-480a-b407-5a7a865ef6aa_it-discovery_inventory/inventory.sqlite
+    source_identity: "it-discovery/inventory:27ca3eab-adb9-480a-b407-5a7a865ef6aa"
+  postkamer:
+    approved: false
+    kind: sqlite
+    source: /var/lib/rancher/k3s/storage/pvc-d2c93712-37bf-42e9-aa68-92105f40d028_postkamer_postkamer-data/demo.sqlite
+    source_identity: "postkamer/postkamer-data:d2c93712-37bf-42e9-aa68-92105f40d028"
+  recovery:
+    approved: false
+    kind: independent-recovery
+    producer_reviewed: false
+    producer_contract: PENDING-SERVER4-RECOVERY-REVIEW
+    sealed_export: /run/server2-sealed-exports/recovery
+    source_identity: mau2/independent-recovery-set

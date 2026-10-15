@@ -1,0 +1,22 @@
+---
+- name: Prepare disabled backup v2 files only after separate deployment authorization
+  hosts: "{{ backup_v2_target | default('server2') }}"
+  become: true
+  gather_facts: false
+  pre_tasks:
+    - name: Deny deployment before connecting to any host unless explicitly approved
+      ansible.builtin.assert:
+        that:
+          - backup_v2_deployment_approved | default(false) | bool
+          - inventory_hostname in ['server2', 'server3']
+          - (inventory_hostname == 'server2' and ansible_host == '192.168.0.162') or (inventory_hostname == 'server3' and ansible_host == '192.168.0.186')
+    - name: Gather facts only after deployment approval
+      ansible.builtin.setup:
+    - name: Confirm actual OS and hostname before preparing files
+      ansible.builtin.assert:
+        that:
+          - (inventory_hostname == 'server2' and ansible_hostname == 'mau2') or (inventory_hostname == 'server3' and ansible_hostname == 'mau3')
+          - ansible_distribution == 'Ubuntu'
+          - ansible_distribution_version is version('24.04', '==')
+  roles:
+    - backup_v2

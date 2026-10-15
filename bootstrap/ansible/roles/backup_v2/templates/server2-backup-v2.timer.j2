@@ -1,0 +1,9 @@
+[Unit]
+Description=Server2 daily backup proposal (not enabled)
+[Timer]
+OnCalendar={{ backup_v2_calendar }}
+Persistent=true
+RandomizedDelaySec=300
+AccuracySec=1min
+Unit=server2-backup-v2.service
+# Deliberately no Install section: activation requires a separate reviewed change.

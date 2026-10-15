@@ -1,0 +1,26 @@
+[Unit]
+Description=Server2 backup v2 (disabled review implementation)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/usr/local/sbin/server2-backup-v2 backup
+TimeoutStartSec=45min
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/server2-backup-v2
+TemporaryFileSystem=/run/server2-backup-v2:rw,noswap,nodev,nosuid,noexec,size={{ backup_v2_stage_bytes }},mode=0700
+NoNewPrivileges=true
+LimitCORE=0
+MemorySwapMax=0
+MemoryMax=768M
+Nice=10
+IOSchedulingClass=idle
+CPUQuota=100%
+StandardOutput=journal
+StandardError=journal
+# No Install section, OnFailure transport or power/app stop handler yet.

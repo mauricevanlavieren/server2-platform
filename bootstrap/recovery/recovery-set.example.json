@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "status": "DESIGN_ONLY",
+  "server4": {
+    "hostname": null,
+    "ip": null,
+    "identity_confirmed": false,
+    "isolated": false
+  },
+  "repository": "sftp:backupsvc@192.168.0.186:/backup/restic",
+  "repository_id": "00c5600469b3306c939434a0e232fb141e844a3931a307a1c0af58e5066fed68",
+  "filesystem_uuid": "67837227-f008-4257-822a-b4562efa2daa",
+  "components": {
+    "restic-decrypt": {
+      "independently_available": false,
+      "verified": false,
+      "location_ref": "PENDING-OWNER-ESCROW-REFERENCE"
+    },
+    "sftp-read-access": {
+      "independently_available": false,
+      "verified": false,
+      "location_ref": "PENDING-OWNER-ESCROW-REFERENCE"
+    },
+    "server3-hostkey": {
+      "independently_available": false,
+      "verified": false,
+      "location_ref": "PENDING-OWNER-ESCROW-REFERENCE"
+    },
+    "sops-age": {
+      "independently_available": false,
+      "verified": false,
+      "location_ref": "PENDING-OWNER-ESCROW-REFERENCE"
+    },
+    "ca-recovery": {
+      "independently_available": false,
+      "verified": false,
+      "location_ref": "PENDING-OWNER-ESCROW-REFERENCE"
+    },
+    "github-recovery": {
+      "independently_available": false,
+      "verified": false,
+      "location_ref": "PENDING-OWNER-ESCROW-REFERENCE"
+    },
+    "git-bundle": {
+      "independently_available": false,
+      "verified": false,
+      "location_ref": "PENDING-OWNER-ESCROW-REFERENCE"
+    },
+    "host-bootstrap": {
+      "independently_available": false,
+      "verified": false,
+      "location_ref": "PENDING-OWNER-ESCROW-REFERENCE"
+    },
+    "image-escrow": {
+      "independently_available": false,
+      "verified": false,
+      "location_ref": "PENDING-OWNER-ESCROW-REFERENCE"
+    },
+    "dataset-contracts": {
+      "independently_available": false,
+      "verified": false,
+      "location_ref": "PENDING-OWNER-ESCROW-REFERENCE"
+    },
+    "snapshot-receipts": {
+      "independently_available": false,
+      "verified": false,
+      "location_ref": "PENDING-OWNER-ESCROW-REFERENCE"
+    }
+  },
+  "artifacts": []
+}

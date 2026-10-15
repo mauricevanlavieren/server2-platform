@@ -1,0 +1,12 @@
+[Unit]
+Description=Server2 backup freshness (disabled review)
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/usr/local/sbin/server2-backup-v2 status
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+LimitCORE=0

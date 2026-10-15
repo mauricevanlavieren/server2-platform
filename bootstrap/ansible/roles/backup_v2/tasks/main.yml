@@ -1,0 +1,87 @@
+---
+- name: Preparation cannot enable runtime capabilities
+  ansible.builtin.assert:
+    that:
+      - backup_v2_deployment_approved | bool
+      - not (backup_v2_enabled | bool)
+      - not (backup_v2_runtime_release_approved | bool)
+      - not (backup_v2_inventory_handoff_approved | bool)
+      - not (backup_v2_wol_enabled | bool)
+      - not (backup_v2_allow_application_pause | bool)
+      - not (backup_v2_retention_enabled | bool)
+      - not (backup_v2_shutdown_enabled | bool)
+
+- name: Create only non-credential review deployment directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop: "{{ ['/etc/server2-backup-v2', '/var/lib/server2-backup-v2'] if inventory_hostname == 'server2' else ['/etc/server3-backup-control'] }}"
+
+- name: Install disabled server2 runner only
+  ansible.builtin.copy:
+    src: server2_backup.py
+    dest: /usr/local/sbin/server2-backup-v2
+    owner: root
+    group: root
+    mode: "0750"
+  when: inventory_hostname == 'server2'
+
+- name: Render disabled server2 configuration
+  ansible.builtin.template:
+    src: config.json.j2
+    dest: /etc/server2-backup-v2/config.json
+    owner: root
+    group: root
+    mode: "0600"
+  when: inventory_hostname == 'server2'
+
+- name: Render inactive unit definitions without reloading or manipulating timers
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - server2-backup-v2.service
+    - server2-backup-v2.timer
+    - server2-backup-v2-status.service
+    - server2-backup-v2-status.timer
+  when: inventory_hostname == 'server2'
+
+- name: Create public helper executable directory only after deployment approval
+  ansible.builtin.file:
+    path: /usr/local/libexec
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: inventory_hostname == 'server3'
+
+- name: Install disabled server3 helper sources without access grants
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode | default('0750') }}"
+  loop:
+    - {src: server3_backup_control.py, dest: /usr/local/sbin/server3-backup-control}
+    - {src: server3_backup_forced.sh, dest: /usr/local/libexec/server3-backup-forced, mode: "0755"}
+  when: inventory_hostname == 'server3'
+
+- name: Render disabled server3 configuration
+  ansible.builtin.template:
+    src: server3-config.json.j2
+    dest: /etc/server3-backup-control/config.json
+    owner: root
+    group: root
+    mode: "0600"
+  when: inventory_hostname == 'server3'
+
+# Intentionally no apt, user, key generation, authorized_keys, sudoers installation,
+# systemd daemon-reload/start/stop/enable/disable, retention, power or app operations.
+# Access templates are review artifacts only and are not deployed by this role.

@@ -1,0 +1,6 @@
+{# REVIEW ONLY: render requires an explicitly supplied existing PUBLIC key. #}
+{% if backup_v2_control_public_key | length == 0 %}
+# No public key supplied. No access grant exists.
+{% else %}
+from="192.168.0.162",restrict,command="/usr/local/libexec/server3-backup-forced" {{ backup_v2_control_public_key }}
+{% endif %}
