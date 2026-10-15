@@ -1,15 +1,19 @@
-# Official Docker Library Python, verified linux/amd64 manifest.
-FROM docker.io/library/python:3.13.16-slim-trixie@sha256:8fb4cfa1a2616d7b8e0c2175cc6ad68f5729c34ea8488c0b360d2934b7be9024
-# Official Debian trixie-security update, package version and SHA256 locked.
-COPY vendor/liblzma.deb /tmp/liblzma.deb
-RUN echo "b38acab30f295bf1066a6632e31cbd0a1980f2924b38040cda131d5dea5384ec  /tmp/liblzma.deb" | sha256sum -c - \
-    && dpkg -i /tmp/liblzma.deb \
-    && test "$(dpkg-query -W -f='${Version}' liblzma5)" = '5.8.1-1+deb13u2' \
-    && rm /tmp/liblzma.deb \
-    && rm -f /usr/bin/mount /usr/bin/umount /usr/bin/nsenter /usr/bin/unshare /usr/bin/setpriv /usr/bin/su /usr/sbin/runuser /usr/sbin/chroot \
-    && find /usr -xdev -type f -perm /6000 -exec chmod a-s {} +
-# Runtime uses only stdlib; remove unused installer, vendored code and reinstall wheel.
-RUN test -d /usr/local/lib/python3.13/site-packages/pip && rm -rf /usr/local/lib/python3.13/site-packages/pip /usr/local/lib/python3.13/site-packages/pip-26.2.1.dist-info /usr/local/lib/python3.13/ensurepip /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.13
+# Isolated candidate: official Docker Library Python, linux/amd64 digest pinned.
+FROM docker.io/library/python:3.13.16-alpine3.23@sha256:a237388397d835ba00539990f15487187eacf17d160c21aaa9e951818344f0dd
+# Native stable packages only: security fix plus existing IPv6 guard dependency.
+# apk verifies package signatures with the trusted keys retained from the official base.
+COPY vendor/zlib.apk vendor/libseccomp.apk /tmp/
+RUN echo "ee62e1864c235901e2aa4d1868c7ae8f7cc5d0740a98c48a2525332eb4bfda73  /tmp/zlib.apk" | sha256sum -c - \
+    && echo "40132d53050deddad00d74ec304ae766b75a1df967ed10369f5e6736b8f4ac74  /tmp/libseccomp.apk" | sha256sum -c - \
+    && apk add --no-network --no-cache /tmp/zlib.apk /tmp/libseccomp.apk \
+    && apk info --exists 'zlib=1.3.2-r1' 'libseccomp=2.6.1-r0' \
+    && rm /tmp/zlib.apk /tmp/libseccomp.apk
+# Runtime is stdlib-only; keep the OS package database for complete scanning.
+RUN rm -rf /usr/local/lib/python3.13/site-packages/pip /usr/local/lib/python3.13/site-packages/pip-*.dist-info /usr/local/lib/python3.13/ensurepip \
+    && rm -f /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.13 \
+    && rm -f /bin/mount /bin/umount /bin/su /usr/bin/mount /usr/bin/umount /usr/bin/nsenter /usr/bin/unshare /usr/bin/setpriv /usr/bin/su /usr/sbin/runuser /usr/sbin/chroot \
+    && find /usr -xdev -type f -perm /6000 -exec chmod a-s {} + \
+    && find /bin /sbin -xdev -type f -perm /6000 -exec chmod a-s {} +
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
     POSTKAMER_BIND=0.0.0.0 POSTKAMER_PORT=8765 \
     POSTKAMER_DB=/data/demo.sqlite \

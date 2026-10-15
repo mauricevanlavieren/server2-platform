@@ -8,4 +8,6 @@
 **/*.pyc
 
 !vendor/
-!vendor/liblzma.deb
+!vendor/zlib.apk
+
+!vendor/libseccomp.apk
