@@ -1,0 +1,21 @@
+name: REVIEW blocked Postkamer publication design
+'on':
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact reviewed main commit; does not enable publication
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  publication_blocked:
+    if: ${{ false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Publication is not implemented or authorised
+        run: |
+          echo 'BLOCKED: missing approved package grant, green security gate and reviewed publisher.' >&2
+          exit 2
+# No login, push, packages:write, deploy, or bypass of the application gate.
